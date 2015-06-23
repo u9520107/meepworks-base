@@ -1,16 +1,21 @@
 import koa from 'koa';
 import favicon from 'koa-favicon';
 import mount from 'koa-mount';
-import router from 'koa-router';
 import serve from 'koa-static-cache';
 import * as config from './config';
 
 import path from 'path';
 
-import './filter';
+
+import RequireFilter from 'meepworks/require-filter';
+const requireFilter = new RequireFilter({
+  baseURL: '',
+  root: path.resolve(__dirname, '..')
+  //version: version
+});
+requireFilter.filter('.css!');
 
 import AppDriver from 'meepworks/server-app-driver';
-import App from './app/app';
 
 const port = process.env.PORT || 13382;
 const server = koa();
@@ -31,21 +36,20 @@ server.use(function*(next) {
   yield next;
 });
 
-
-
-server.use(mount('/', new AppDriver(App, {
+const app = new AppDriver({
   appPath: 'app/app',
   jspm: {
     path: 'jspm_packages',
     config: 'jspm_packages/config.js'
   },
-  distPath: {
-    external: 'build',
-    internal: 'build'
-  },
-  fileRoot: __dirname
-})));
-
+  dirname: __dirname,
+  root: path.resolve(__dirname, '..'),
+  buildPath: '/build',
+  buildURL: 'build',
+  abortPath: '/',
+  baseURL: ''
+});
+server.use(app.router);
 
 server.listen(port, () => {
   console.log(`listening to ${port}`);
